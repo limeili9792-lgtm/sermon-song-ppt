@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import { Music, Plus, Trash2, ChevronDown, ChevronUp, Image, Loader2 } from 'lucide-react';
+import { Music, Plus, Trash2, ChevronDown, ChevronUp, Image, Loader2, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -18,6 +18,7 @@ export default function HymnEditor({ hymns, onChange }: Props) {
   const [rawText, setRawText] = useState('');
   const [expandedHymn, setExpandedHymn] = useState<string | null>(null);
   const [ocrLoading, setOcrLoading] = useState(false);
+  const [aiLoading, setAiLoading] = useState<string | null>(null);
 
   const addHymnFromText = () => {
     if (!rawText.trim()) return;
@@ -38,7 +39,6 @@ export default function HymnEditor({ hymns, onChange }: Props) {
 
     setOcrLoading(true);
     try {
-      // Convert to base64
       const base64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result as string);
@@ -71,6 +71,40 @@ export default function HymnEditor({ hymns, onChange }: Props) {
       toast.error('图片识别失败，请重试');
     } finally {
       setOcrLoading(false);
+    }
+  }, [hymns, onChange]);
+
+  // AI: detect chorus/verse repeat structure
+  const generateRepeatStructure = useCallback(async (hymnId: string) => {
+    const hymn = hymns.find(h => h.id === hymnId);
+    if (!hymn || hymn.verses.length === 0) return;
+
+    setAiLoading(hymnId);
+    try {
+      const versesText = hymn.verses.map((v, i) => `[${i}] ${v.label}: ${v.text}`).join('\n\n');
+
+      const { data, error } = await supabase.functions.invoke('ocr-hymn', {
+        body: {
+          mode: 'repeat-structure',
+          versesText,
+          hymnTitle: hymn.title,
+        },
+      });
+
+      if (error) throw error;
+
+      const structure = data?.repeatStructure;
+      if (structure && Array.isArray(structure)) {
+        onChange(hymns.map(h => h.id === hymnId ? { ...h, repeatStructure: structure } : h));
+        toast.success(`已生成演唱顺序：共 ${structure.length} 个片段`);
+      } else {
+        toast.error('无法识别重复结构');
+      }
+    } catch (err) {
+      console.error('AI repeat error:', err);
+      toast.error('AI分析失败，请重试');
+    } finally {
+      setAiLoading(null);
     }
   }, [hymns, onChange]);
 
@@ -117,7 +151,7 @@ export default function HymnEditor({ hymns, onChange }: Props) {
         <Textarea
           value={rawText}
           onChange={e => setRawText(e.target.value)}
-          placeholder={`粘贴诗歌歌词，系统将自动识别结构：\n\n奇异恩典\n\n第一节\n奇异恩典 何等甘甜\n我罪已得赦免\n\n第二节\n如此恩典 使我敬畏\n使我心得安慰`}
+          placeholder={`粘贴诗歌歌词，系统将自动识别结构：\n\n展开清晨的翅膀\n\n第一节\n主耶和华你已经鉴察了我\n我坐下我起来你都已晓得\n\n副歌\n这样的奇妙是我不能测透`}
           className="min-h-[160px] bg-background/60 border-border font-body text-sm resize-none"
         />
         <div className="flex gap-2 mt-3">
@@ -147,6 +181,11 @@ export default function HymnEditor({ hymns, onChange }: Props) {
               <span className="w-7 h-7 rounded-full bg-accent/15 text-accent flex items-center justify-center text-xs font-bold">{idx + 1}</span>
               <span className="font-display font-semibold text-foreground">{hymn.title}</span>
               <span className="text-xs text-muted-foreground">{hymn.verses.length} 段</span>
+              {hymn.repeatStructure && (
+                <span className="text-xs bg-accent/10 text-accent px-2 py-0.5 rounded-full">
+                  演唱 {hymn.repeatStructure.length} 片段
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-1">
               <Button variant="ghost" size="icon" onClick={e => { e.stopPropagation(); removeHymn(hymn.id); }} className="text-muted-foreground hover:text-destructive h-8 w-8">
@@ -170,6 +209,26 @@ export default function HymnEditor({ hymns, onChange }: Props) {
                 className="text-sm bg-background/60"
                 placeholder="作者（可选）"
               />
+
+              {/* AI repeat structure */}
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => generateRepeatStructure(hymn.id)}
+                  disabled={aiLoading === hymn.id || hymn.verses.length === 0}
+                  className="border-accent/30 text-accent hover:bg-accent/10"
+                >
+                  {aiLoading === hymn.id ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <RefreshCw className="w-3 h-3 mr-1" />}
+                  AI生成演唱顺序
+                </Button>
+                {hymn.repeatStructure && (
+                  <span className="text-xs text-muted-foreground">
+                    顺序: {hymn.repeatStructure.map(i => hymn.verses[i]?.label || i).join(' → ')}
+                  </span>
+                )}
+              </div>
+
               {hymn.verses.map((verse) => (
                 <div key={verse.id} className="rounded-lg border border-border p-3 bg-background/40">
                   <div className="flex items-center justify-between mb-2">
