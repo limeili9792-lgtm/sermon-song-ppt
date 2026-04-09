@@ -34,14 +34,44 @@ export default function HymnEditor({ hymns, onChange }: Props) {
   const handleImageUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    // For now, use a simple placeholder - OCR would need backend
-    const hymn: Hymn = {
-      id: generateId(),
-      title: '图片识别诗歌（请编辑）',
-      verses: [{ id: generateId(), label: '第1段', text: '请手动输入歌词或连接OCR服务' }],
-    };
-    onChange([...hymns, hymn]);
     e.target.value = '';
+
+    setOcrLoading(true);
+    try {
+      // Convert to base64
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      const { data, error } = await supabase.functions.invoke('ocr-hymn', {
+        body: { imageBase64: base64 },
+      });
+
+      if (error) throw error;
+
+      const text = data?.text;
+      if (!text || text === '无法识别') {
+        toast.error('无法从图片中识别歌词内容');
+        return;
+      }
+
+      const { title, verses } = parseHymnText(text);
+      const hymn: Hymn = {
+        id: generateId(),
+        title: title || '图片识别诗歌',
+        verses,
+      };
+      onChange([...hymns, hymn]);
+      toast.success(`已识别诗歌: ${hymn.title}`);
+    } catch (err) {
+      console.error('OCR error:', err);
+      toast.error('图片识别失败，请重试');
+    } finally {
+      setOcrLoading(false);
+    }
   }, [hymns, onChange]);
 
   const removeHymn = (id: string) => {
