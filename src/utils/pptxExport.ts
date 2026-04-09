@@ -1,5 +1,5 @@
 import PptxGenJS from 'pptxgenjs';
-import { Hymn, SermonData, SlideData } from '@/types/slide';
+import { Hymn, SermonData, SlideData, SermonImage } from '@/types/slide';
 
 // Template colors from the church PPT template
 const COLORS = {
@@ -82,19 +82,25 @@ export function generateSlides(hymns: Hymn[], sermon: SermonData): SlideData[] {
     }
   }
 
-  // Sermon slides
+  // Sermon slides - collect subtitle + following content + image into one slide
   let currentTitle = '';
   let currentSubtitle = '';
+  let currentSubtitleImage: { image: SermonImage; imageUrl: string } | null = null;
   let contentBuffer: string[] = [];
 
   const flushContent = () => {
-    if (contentBuffer.length > 0) {
+    if (contentBuffer.length > 0 || currentSubtitleImage) {
       const slide: SlideData = {
         type: 'sermon-content',
         title: currentTitle,
         subtitle: currentSubtitle,
         content: contentBuffer.join('\n'),
       };
+      if (currentSubtitleImage) {
+        slide.image = currentSubtitleImage.image;
+        slide.imageUrl = currentSubtitleImage.imageUrl;
+        currentSubtitleImage = null;
+      }
       slides.push(slide);
       contentBuffer = [];
     }
@@ -106,7 +112,6 @@ export function generateSlides(hymns: Hymn[], sermon: SermonData): SlideData[] {
       currentTitle = section.text;
       currentSubtitle = '';
       const titleSlide: SlideData = { type: 'sermon-title', title: section.text };
-      // Attach image to title slide if present
       if (section.image) {
         titleSlide.image = section.image;
         titleSlide.imageUrl = section.image.url;
@@ -115,33 +120,17 @@ export function generateSlides(hymns: Hymn[], sermon: SermonData): SlideData[] {
     } else if (section.level === 'subtitle') {
       flushContent();
       currentSubtitle = section.text;
-      // If subtitle has image, create a content slide with image
+      // Store image to attach to the next content slide with this subtitle
       if (section.image) {
-        const subtitleSlide: SlideData = {
-          type: 'sermon-content',
-          title: currentTitle,
-          subtitle: currentSubtitle,
-          content: '',
-          image: section.image,
-          imageUrl: section.image.url,
-        };
-        slides.push(subtitleSlide);
+        currentSubtitleImage = { image: section.image, imageUrl: section.image.url };
       }
     } else {
       contentBuffer.push(section.text);
-      if (contentBuffer.length >= 4) flushContent();
-      // Attach image to current content
+      // If this content section has an image, attach it
       if (section.image) {
-        flushContent();
-        slides.push({
-          type: 'sermon-content',
-          title: currentTitle,
-          subtitle: currentSubtitle,
-          content: '',
-          image: section.image,
-          imageUrl: section.image.url,
-        });
+        currentSubtitleImage = { image: section.image, imageUrl: section.image.url };
       }
+      if (contentBuffer.length >= 4) flushContent();
     }
   }
   flushContent();
@@ -281,6 +270,7 @@ export async function exportToPptx(hymns: Hymn[], sermon: SermonData) {
   let sermonTitle = '';
   let sermonSubtitle = '';
   let contentBuf: string[] = [];
+  let currentImage: { file: File; url: string } | null = null;
 
   const flushSermonSlide = async (image?: { file: File; url: string }) => {
     if (contentBuf.length === 0 && !image) return;
@@ -321,13 +311,13 @@ export async function exportToPptx(hymns: Hymn[], sermon: SermonData) {
       });
     }
 
-    // Bottom accent bar
     slide.addShape('rect', {
       x: 0, y: 7.2, w: 10, h: 0.05,
       fill: { color: COLORS.navy },
     });
 
     contentBuf = [];
+    currentImage = null;
   };
 
   for (const section of sermon.sections) {
@@ -346,7 +336,6 @@ export async function exportToPptx(hymns: Hymn[], sermon: SermonData) {
         align: 'center', bold: true,
       });
 
-      // If title has image, embed it on the same slide
       if (section.image) {
         const base64 = await fileToBase64(section.image.file);
         slide.addImage({
@@ -358,41 +347,19 @@ export async function exportToPptx(hymns: Hymn[], sermon: SermonData) {
     } else if (section.level === 'subtitle') {
       await flushSermonSlide();
       sermonSubtitle = section.text;
-
-      // If subtitle has image, create slide with subtitle + image
+      // Store image for next flush
       if (section.image) {
-        const slide = pptx.addSlide();
-        slide.background = { color: COLORS.white };
-        
-        slide.addText(section.text, {
-          x: 0.8, y: 0.4, w: 5.0, h: 0.8,
-          fontSize: 28, fontFace: FONT,
-          color: COLORS.navy, bold: true,
-        });
-
-        const base64 = await fileToBase64(section.image.file);
-        slide.addImage({
-          data: base64,
-          x: 5.5, y: 0.5, w: 4.2, h: 6.5,
-          sizing: { type: 'contain', w: 4.2, h: 6.5 },
-        });
-
-        slide.addShape('rect', {
-          x: 0, y: 7.2, w: 10, h: 0.05,
-          fill: { color: COLORS.navy },
-        });
+        currentImage = section.image;
       }
     } else {
       contentBuf.push(section.text);
-      if (contentBuf.length >= 4) await flushSermonSlide();
-
-      // Content section with image - flush and embed on same slide
       if (section.image) {
-        await flushSermonSlide(section.image);
+        currentImage = section.image;
       }
+      if (contentBuf.length >= 4) await flushSermonSlide(currentImage || undefined);
     }
   }
-  await flushSermonSlide();
+  await flushSermonSlide(currentImage || undefined);
 
   await pptx.writeFile({ fileName: 'SECSlider_Presentation.pptx' });
 }
