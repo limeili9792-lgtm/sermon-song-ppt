@@ -17,6 +17,7 @@ interface Props {
 export default function HymnEditor({ hymns, onChange }: Props) {
   const [rawText, setRawText] = useState('');
   const [expandedHymn, setExpandedHymn] = useState<string | null>(null);
+  const [ocrLoading, setOcrLoading] = useState(false);
 
   const addHymnFromText = () => {
     if (!rawText.trim()) return;
