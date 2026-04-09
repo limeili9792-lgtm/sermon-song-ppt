@@ -131,13 +131,25 @@ export default function HymnEditor({ hymns, onChange }: Props) {
       label: `第${hymn.verses.length + 1}段`,
       text: '',
     };
-    updateHymn(hymnId, { verses: [...hymn.verses, newVerse] });
+    // Clear repeat structure since verses changed
+    updateHymn(hymnId, { verses: [...hymn.verses, newVerse], repeatStructure: undefined });
   };
 
   const removeVerse = (hymnId: string, verseId: string) => {
     const hymn = hymns.find(h => h.id === hymnId);
     if (!hymn) return;
-    updateHymn(hymnId, { verses: hymn.verses.filter(v => v.id !== verseId) });
+    const newVerses = hymn.verses.filter(v => v.id !== verseId);
+    // Auto-adjust repeat structure: remove references to deleted verse index and remap
+    let newRepeat: number[] | undefined = undefined;
+    if (hymn.repeatStructure) {
+      const oldIdx = hymn.verses.findIndex(v => v.id === verseId);
+      newRepeat = hymn.repeatStructure
+        .filter(i => i !== oldIdx)
+        .map(i => i > oldIdx ? i - 1 : i)
+        .filter(i => i >= 0 && i < newVerses.length);
+      if (newRepeat.length === 0) newRepeat = undefined;
+    }
+    updateHymn(hymnId, { verses: newVerses, repeatStructure: newRepeat });
   };
 
   return (
