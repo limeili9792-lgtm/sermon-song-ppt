@@ -272,6 +272,8 @@ export async function exportToPptx(hymns: Hymn[], sermon: SermonData) {
   let contentBuf: string[] = [];
 
   const flushSermonSlide = async (image?: { file: File; url: string }) => {
+    if (contentBuf.length === 0 && !image && !sermonSubtitle) return;
+    // Need at least subtitle or content or image to create a slide
     if (contentBuf.length === 0 && !image) return;
     const slide = pptx.addSlide();
     slide.background = { color: COLORS.white };
@@ -310,13 +312,13 @@ export async function exportToPptx(hymns: Hymn[], sermon: SermonData) {
       });
     }
 
-    // Bottom accent bar
     slide.addShape('rect', {
       x: 0, y: 7.2, w: 10, h: 0.05,
       fill: { color: COLORS.navy },
     });
 
     contentBuf = [];
+    currentImage = null;
   };
 
   let currentImage: { file: File; url: string } | null = null;
