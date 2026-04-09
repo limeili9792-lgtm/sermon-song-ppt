@@ -5,7 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import { Music, Plus, Trash2, Upload, ChevronDown, ChevronUp, Edit3, Image } from 'lucide-react';
+import { Music, Plus, Trash2, ChevronDown, ChevronUp, Image, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface Props {
   hymns: Hymn[];
