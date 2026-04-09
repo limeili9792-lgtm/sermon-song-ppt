@@ -1,5 +1,4 @@
 import { HymnVerse, SermonSection } from '@/types/slide';
-import { v4 } from '@/lib/utils';
 
 export function generateId(): string {
   return Math.random().toString(36).substring(2, 10);
