@@ -125,10 +125,13 @@ export default function HymnEditor({ hymns, onChange }: Props) {
             <Plus className="w-4 h-4 mr-1" /> 解析并添加
           </Button>
           <label>
-            <Button variant="outline" asChild className="cursor-pointer border-border text-foreground hover:bg-secondary">
-              <span><Image className="w-4 h-4 mr-1" /> 图片OCR识别</span>
+            <Button variant="outline" asChild disabled={ocrLoading} className="cursor-pointer border-border text-foreground hover:bg-secondary">
+              <span>
+                {ocrLoading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Image className="w-4 h-4 mr-1" />}
+                {ocrLoading ? 'AI识别中...' : '图片OCR识别'}
+              </span>
             </Button>
-            <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+            <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={ocrLoading} />
           </label>
         </div>
       </Card>
