@@ -319,6 +319,8 @@ export async function exportToPptx(hymns: Hymn[], sermon: SermonData) {
     contentBuf = [];
   };
 
+  let currentImage: { file: File; url: string } | null = null;
+
   for (const section of sermon.sections) {
     if (section.level === 'title') {
       await flushSermonSlide();
@@ -335,7 +337,6 @@ export async function exportToPptx(hymns: Hymn[], sermon: SermonData) {
         align: 'center', bold: true,
       });
 
-      // If title has image, embed it on the same slide
       if (section.image) {
         const base64 = await fileToBase64(section.image.file);
         slide.addImage({
@@ -347,41 +348,19 @@ export async function exportToPptx(hymns: Hymn[], sermon: SermonData) {
     } else if (section.level === 'subtitle') {
       await flushSermonSlide();
       sermonSubtitle = section.text;
-
-      // If subtitle has image, create slide with subtitle + image
+      // Store image for next flush
       if (section.image) {
-        const slide = pptx.addSlide();
-        slide.background = { color: COLORS.white };
-        
-        slide.addText(section.text, {
-          x: 0.8, y: 0.4, w: 5.0, h: 0.8,
-          fontSize: 28, fontFace: FONT,
-          color: COLORS.navy, bold: true,
-        });
-
-        const base64 = await fileToBase64(section.image.file);
-        slide.addImage({
-          data: base64,
-          x: 5.5, y: 0.5, w: 4.2, h: 6.5,
-          sizing: { type: 'contain', w: 4.2, h: 6.5 },
-        });
-
-        slide.addShape('rect', {
-          x: 0, y: 7.2, w: 10, h: 0.05,
-          fill: { color: COLORS.navy },
-        });
+        currentImage = section.image;
       }
     } else {
       contentBuf.push(section.text);
-      if (contentBuf.length >= 4) await flushSermonSlide();
-
-      // Content section with image - flush and embed on same slide
       if (section.image) {
-        await flushSermonSlide(section.image);
+        currentImage = section.image;
       }
+      if (contentBuf.length >= 4) await flushSermonSlide(currentImage || undefined);
     }
   }
-  await flushSermonSlide();
+  await flushSermonSlide(currentImage || undefined);
 
   await pptx.writeFile({ fileName: 'SECSlider_Presentation.pptx' });
 }
