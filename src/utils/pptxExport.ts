@@ -270,10 +270,9 @@ export async function exportToPptx(hymns: Hymn[], sermon: SermonData) {
   let sermonTitle = '';
   let sermonSubtitle = '';
   let contentBuf: string[] = [];
+  let currentImage: { file: File; url: string } | null = null;
 
   const flushSermonSlide = async (image?: { file: File; url: string }) => {
-    if (contentBuf.length === 0 && !image && !sermonSubtitle) return;
-    // Need at least subtitle or content or image to create a slide
     if (contentBuf.length === 0 && !image) return;
     const slide = pptx.addSlide();
     slide.background = { color: COLORS.white };
@@ -320,8 +319,6 @@ export async function exportToPptx(hymns: Hymn[], sermon: SermonData) {
     contentBuf = [];
     currentImage = null;
   };
-
-  let currentImage: { file: File; url: string } | null = null;
 
   for (const section of sermon.sections) {
     if (section.level === 'title') {
