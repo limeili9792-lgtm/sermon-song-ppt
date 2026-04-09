@@ -82,19 +82,25 @@ export function generateSlides(hymns: Hymn[], sermon: SermonData): SlideData[] {
     }
   }
 
-  // Sermon slides
+  // Sermon slides - collect subtitle + following content + image into one slide
   let currentTitle = '';
   let currentSubtitle = '';
+  let currentSubtitleImage: { image: SermonImage; imageUrl: string } | null = null;
   let contentBuffer: string[] = [];
 
   const flushContent = () => {
-    if (contentBuffer.length > 0) {
+    if (contentBuffer.length > 0 || currentSubtitleImage) {
       const slide: SlideData = {
         type: 'sermon-content',
         title: currentTitle,
         subtitle: currentSubtitle,
         content: contentBuffer.join('\n'),
       };
+      if (currentSubtitleImage) {
+        slide.image = currentSubtitleImage.image;
+        slide.imageUrl = currentSubtitleImage.imageUrl;
+        currentSubtitleImage = null;
+      }
       slides.push(slide);
       contentBuffer = [];
     }
@@ -106,7 +112,6 @@ export function generateSlides(hymns: Hymn[], sermon: SermonData): SlideData[] {
       currentTitle = section.text;
       currentSubtitle = '';
       const titleSlide: SlideData = { type: 'sermon-title', title: section.text };
-      // Attach image to title slide if present
       if (section.image) {
         titleSlide.image = section.image;
         titleSlide.imageUrl = section.image.url;
@@ -115,33 +120,17 @@ export function generateSlides(hymns: Hymn[], sermon: SermonData): SlideData[] {
     } else if (section.level === 'subtitle') {
       flushContent();
       currentSubtitle = section.text;
-      // If subtitle has image, create a content slide with image
+      // Store image to attach to the next content slide with this subtitle
       if (section.image) {
-        const subtitleSlide: SlideData = {
-          type: 'sermon-content',
-          title: currentTitle,
-          subtitle: currentSubtitle,
-          content: '',
-          image: section.image,
-          imageUrl: section.image.url,
-        };
-        slides.push(subtitleSlide);
+        currentSubtitleImage = { image: section.image, imageUrl: section.image.url };
       }
     } else {
       contentBuffer.push(section.text);
-      if (contentBuffer.length >= 4) flushContent();
-      // Attach image to current content
+      // If this content section has an image, attach it
       if (section.image) {
-        flushContent();
-        slides.push({
-          type: 'sermon-content',
-          title: currentTitle,
-          subtitle: currentSubtitle,
-          content: '',
-          image: section.image,
-          imageUrl: section.image.url,
-        });
+        currentSubtitleImage = { image: section.image, imageUrl: section.image.url };
       }
+      if (contentBuffer.length >= 4) flushContent();
     }
   }
   flushContent();
