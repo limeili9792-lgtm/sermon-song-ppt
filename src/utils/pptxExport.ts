@@ -1,5 +1,5 @@
 import PptxGenJS from 'pptxgenjs';
-import { Hymn, SermonData, SlideData } from '@/types/slide';
+import { Hymn, SermonData, SlideData, SermonImage } from '@/types/slide';
 
 // Template colors from the church PPT template
 const COLORS = {
