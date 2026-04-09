@@ -11,10 +11,11 @@ interface Props {
 
 function SlideRenderer({ slide }: { slide: SlideData }) {
   const isDark = slide.type === 'hymn-title' || slide.type === 'hymn-verse' || slide.type === 'sermon-title';
+  const hasImage = !!(slide.image || slide.imageUrl) && slide.type === 'sermon-content';
 
   return (
     <div
-      className={`w-full aspect-video rounded-lg overflow-hidden flex flex-col items-center justify-center p-8 relative ${
+      className={`w-full aspect-video rounded-lg overflow-hidden flex flex-col items-center justify-center p-6 relative ${
         isDark ? 'bg-primary text-primary-foreground' : 'bg-card text-card-foreground'
       }`}
     >
@@ -27,10 +28,10 @@ function SlideRenderer({ slide }: { slide: SlideData }) {
       )}
 
       {slide.type === 'hymn-verse' && (
-        <div className="text-center space-y-4 max-w-lg">
+        <div className="text-center space-y-3 max-w-lg w-full h-full flex flex-col items-center pt-2">
           <span className="text-xs font-bold text-accent tracking-widest uppercase">{slide.verseLabel}</span>
-          <p className="font-display text-lg md:text-xl leading-relaxed whitespace-pre-line">{slide.content}</p>
-          <p className="text-[10px] text-muted-foreground absolute bottom-3 right-4">{slide.hymnTitle}</p>
+          <p className="font-display text-base md:text-lg leading-relaxed whitespace-pre-line flex-1">{slide.content}</p>
+          <p className="text-[10px] text-muted-foreground self-end">{slide.hymnTitle}</p>
         </div>
       )}
 
@@ -42,25 +43,19 @@ function SlideRenderer({ slide }: { slide: SlideData }) {
       )}
 
       {slide.type === 'sermon-content' && (
-        <div className="w-full text-left space-y-2">
-          {slide.subtitle && (
-            <h3 className="font-display text-lg font-bold text-foreground">{slide.subtitle}</h3>
-          )}
-          <p className="text-sm leading-relaxed whitespace-pre-line text-foreground/80">{slide.content}</p>
-          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent" />
-        </div>
-      )}
-
-      {slide.type === 'sermon-image' && (
-        <div className="flex w-full h-full items-center gap-4">
-          <div className="flex-1">
-            {slide.title && <h3 className="font-display text-lg font-bold">{slide.title}</h3>}
+        <div className={`w-full text-left h-full flex ${hasImage ? 'gap-3' : 'flex-col'}`}>
+          <div className={`flex flex-col gap-1 ${hasImage ? 'flex-1' : 'w-full'}`}>
+            {slide.subtitle && (
+              <h3 className="font-display text-sm font-bold text-foreground">{slide.subtitle}</h3>
+            )}
+            <p className="text-xs leading-relaxed whitespace-pre-line text-foreground/80">{slide.content}</p>
           </div>
-          {slide.imageUrl && (
-            <div className="flex-1 h-full flex items-center justify-center">
-              <img src={slide.imageUrl} alt="" className="max-h-full max-w-full object-contain rounded" />
+          {hasImage && (
+            <div className="w-2/5 h-full flex items-center justify-center">
+              <img src={slide.imageUrl || slide.image?.url} alt="" className="max-h-full max-w-full object-contain rounded" />
             </div>
           )}
+          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent" />
         </div>
       )}
     </div>
@@ -71,9 +66,13 @@ export default function SlidePreview({ hymns, sermon }: Props) {
   const slides = useMemo(() => generateSlides(hymns, sermon), [hymns, sermon]);
   const [current, setCurrent] = useState(0);
 
+  // Reset current if out of bounds
+  const safeIdx = Math.min(current, Math.max(0, slides.length - 1));
+  if (safeIdx !== current) setCurrent(safeIdx);
+
   if (slides.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full text-muted-foreground">
+      <div className="flex items-center justify-center h-48 text-muted-foreground">
         <div className="text-center">
           <div className="w-24 h-14 rounded-lg border-2 border-dashed border-border mx-auto mb-3" />
           <p className="text-sm">添加内容后预览幻灯片</p>
@@ -83,45 +82,52 @@ export default function SlidePreview({ hymns, sermon }: Props) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Main slide */}
       <div className="border border-border rounded-xl overflow-hidden shadow-lg">
-        <SlideRenderer slide={slides[current]} />
+        <SlideRenderer slide={slides[safeIdx]} />
       </div>
 
       {/* Navigation */}
       <div className="flex items-center justify-between">
         <Button
           variant="outline" size="icon"
-          onClick={() => setCurrent(Math.max(0, current - 1))}
-          disabled={current === 0}
+          onClick={() => setCurrent(Math.max(0, safeIdx - 1))}
+          disabled={safeIdx === 0}
           className="h-8 w-8"
         >
           <ChevronLeft className="w-4 h-4" />
         </Button>
-        <span className="text-xs text-muted-foreground">{current + 1} / {slides.length}</span>
+        <span className="text-xs text-muted-foreground">{safeIdx + 1} / {slides.length}</span>
         <Button
           variant="outline" size="icon"
-          onClick={() => setCurrent(Math.min(slides.length - 1, current + 1))}
-          disabled={current === slides.length - 1}
+          onClick={() => setCurrent(Math.min(slides.length - 1, safeIdx + 1))}
+          disabled={safeIdx === slides.length - 1}
           className="h-8 w-8"
         >
           <ChevronRight className="w-4 h-4" />
         </Button>
       </div>
 
-      {/* Thumbnails */}
-      <div className="flex gap-2 overflow-x-auto pb-2">
+      {/* Thumbnails - fixed height grid */}
+      <div className="grid grid-cols-5 gap-1.5 max-h-[300px] overflow-y-auto">
         {slides.map((slide, i) => (
           <button
             key={i}
             onClick={() => setCurrent(i)}
-            className={`shrink-0 w-24 rounded-md overflow-hidden border-2 transition-colors ${
-              i === current ? 'border-accent' : 'border-border hover:border-accent/50'
+            className={`aspect-video rounded-md overflow-hidden border-2 transition-colors ${
+              i === safeIdx ? 'border-accent' : 'border-border hover:border-accent/50'
             }`}
           >
-            <div className="scale-[0.15] origin-top-left w-[640px] pointer-events-none">
-              <SlideRenderer slide={slide} />
+            <div className="w-full h-full">
+              <div className={`w-full h-full flex items-center justify-center p-1 text-[4px] leading-tight ${
+                slide.type === 'hymn-title' || slide.type === 'hymn-verse' || slide.type === 'sermon-title'
+                  ? 'bg-primary text-primary-foreground' : 'bg-card text-card-foreground'
+              }`}>
+                <span className="truncate text-center">
+                  {slide.hymnTitle || slide.title || slide.content?.slice(0, 20) || `${i + 1}`}
+                </span>
+              </div>
             </div>
           </button>
         ))}
