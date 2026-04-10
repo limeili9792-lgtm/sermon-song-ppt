@@ -172,6 +172,10 @@ async function loadTemplateImages() {
   }
 }
 
+// Slide dimensions for LAYOUT_WIDE (16:9)
+const SLIDE_W = 13.33;
+const SLIDE_H = 7.5;
+
 // Add template elements (palm tree top-left, "众立同唱" label, church logo bottom-right)
 function addTemplateElements(slide: PptxGenJS.Slide, label?: string) {
   // White background
@@ -200,7 +204,7 @@ function addTemplateElements(slide: PptxGenJS.Slide, label?: string) {
   if (churchLogoBase64) {
     slide.addImage({
       data: churchLogoBase64,
-      x: 7.4, y: 6.5, w: 2.4, h: 0.8,
+      x: SLIDE_W - 2.6, y: SLIDE_H - 1.0, w: 2.4, h: 0.8,
       sizing: { type: 'contain', w: 2.4, h: 0.8 },
     });
   }
