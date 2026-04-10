@@ -14,6 +14,7 @@ export default function Index() {
   const [hymns, setHymns] = useState<Hymn[]>([]);
   const [sermon, setSermon] = useState<SermonData>({ sections: [], images: [] });
   const [exporting, setExporting] = useState(false);
+  const [aspectRatio, setAspectRatio] = useState<AspectRatio>('16:9');
 
   const hasContent = hymns.length > 0 || sermon.sections.length > 0;
 
