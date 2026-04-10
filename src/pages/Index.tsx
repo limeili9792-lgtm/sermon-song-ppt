@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Hymn, SermonData } from '@/types/slide';
-import { exportToPptx } from '@/utils/pptxExport';
+import { exportToPptx, AspectRatio } from '@/utils/pptxExport';
 import HymnEditor from '@/components/HymnEditor';
 import SermonEditor from '@/components/SermonEditor';
 import SlidePreview from '@/components/SlidePreview';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Download, Music, BookOpen, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 
