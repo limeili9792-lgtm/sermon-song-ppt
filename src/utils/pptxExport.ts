@@ -172,6 +172,10 @@ async function loadTemplateImages() {
   }
 }
 
+// Slide dimensions for LAYOUT_WIDE (16:9)
+const SLIDE_W = 13.33;
+const SLIDE_H = 7.5;
+
 // Add template elements (palm tree top-left, "众立同唱" label, church logo bottom-right)
 function addTemplateElements(slide: PptxGenJS.Slide, label?: string) {
   // White background
@@ -200,7 +204,7 @@ function addTemplateElements(slide: PptxGenJS.Slide, label?: string) {
   if (churchLogoBase64) {
     slide.addImage({
       data: churchLogoBase64,
-      x: 7.4, y: 6.5, w: 2.4, h: 0.8,
+      x: SLIDE_W - 2.6, y: SLIDE_H - 1.0, w: 2.4, h: 0.8,
       sizing: { type: 'contain', w: 2.4, h: 0.8 },
     });
   }
@@ -225,7 +229,7 @@ export async function exportToPptx(hymns: Hymn[], sermon: SermonData) {
     const titleSize = titleLen > 12 ? 48 : 60;
 
     titleSlide.addText(titleText, {
-      x: 0, y: 2.0, w: 10, h: 1.2,
+      x: 0, y: 2.0, w: SLIDE_W, h: 1.2,
       fontSize: titleSize,
       fontFace: FONT,
       color: COLORS.navy,
@@ -253,7 +257,7 @@ export async function exportToPptx(hymns: Hymn[], sermon: SermonData) {
 
         // Lyrics: centered, top-aligned, no verse label
         vSlide.addText(chunk, {
-          x: 0, y: 1.17, w: 10, h: 5.5,
+          x: 0, y: 1.17, w: SLIDE_W, h: 5.5,
           fontSize: lyricSize,
           fontFace: FONT,
           color: COLORS.navy,
@@ -278,8 +282,8 @@ export async function exportToPptx(hymns: Hymn[], sermon: SermonData) {
     slide.background = { color: COLORS.white };
 
     const hasImage = !!image;
-    const contentW = hasImage ? 5.0 : 8.4;
-    const contentX = 0.8;
+    const contentW = hasImage ? 6.5 : SLIDE_W - 2.0;
+    const contentX = 1.0;
 
     if (sermonSubtitle) {
       slide.addText(sermonSubtitle, {
@@ -306,13 +310,13 @@ export async function exportToPptx(hymns: Hymn[], sermon: SermonData) {
       const base64 = await fileToBase64(image.file);
       slide.addImage({
         data: base64,
-        x: 5.5, y: 0.5, w: 4.2, h: 6.5,
-        sizing: { type: 'contain', w: 4.2, h: 6.5 },
+        x: 8.0, y: 0.5, w: 4.8, h: 6.5,
+        sizing: { type: 'contain', w: 4.8, h: 6.5 },
       });
     }
 
     slide.addShape('rect', {
-      x: 0, y: 7.2, w: 10, h: 0.05,
+      x: 0, y: SLIDE_H - 0.3, w: SLIDE_W, h: 0.05,
       fill: { color: COLORS.navy },
     });
 
@@ -330,7 +334,7 @@ export async function exportToPptx(hymns: Hymn[], sermon: SermonData) {
       slide.background = { color: COLORS.white };
 
       slide.addText(section.text, {
-        x: 1, y: 1.8, w: 8, h: 1.2,
+        x: 1.5, y: 1.8, w: SLIDE_W - 3, h: 1.2,
         fontSize: 60, fontFace: FONT,
         color: COLORS.navy,
         align: 'center', bold: true,
@@ -340,8 +344,8 @@ export async function exportToPptx(hymns: Hymn[], sermon: SermonData) {
         const base64 = await fileToBase64(section.image.file);
         slide.addImage({
           data: base64,
-          x: 5.5, y: 3.5, w: 4, h: 3.5,
-          sizing: { type: 'contain', w: 4, h: 3.5 },
+          x: 8.0, y: 3.5, w: 4.5, h: 3.5,
+          sizing: { type: 'contain', w: 4.5, h: 3.5 },
         });
       }
     } else if (section.level === 'subtitle') {
