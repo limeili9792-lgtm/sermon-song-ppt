@@ -48,14 +48,25 @@ export default function Index() {
               SEC<span className="gold-accent">Slider</span> AI
             </h1>
           </div>
-          <Button
-            onClick={handleExport}
-            disabled={!hasContent || exporting}
-            className="bg-accent text-accent-foreground hover:bg-accent/90 font-semibold"
-          >
-            <Download className="w-4 h-4 mr-1.5" />
-            {exporting ? '导出中...' : '导出 PPTX'}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Select value={aspectRatio} onValueChange={(v) => setAspectRatio(v as AspectRatio)}>
+              <SelectTrigger className="w-[100px] h-9 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="16:9">16:9</SelectItem>
+                <SelectItem value="4:3">4:3</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              onClick={handleExport}
+              disabled={!hasContent || exporting}
+              className="bg-accent text-accent-foreground hover:bg-accent/90 font-semibold"
+            >
+              <Download className="w-4 h-4 mr-1.5" />
+              {exporting ? '导出中...' : '导出 PPTX'}
+            </Button>
+          </div>
         </div>
       </header>
 
