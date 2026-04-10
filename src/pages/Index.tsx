@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Hymn, SermonData } from '@/types/slide';
-import { exportToPptx } from '@/utils/pptxExport';
+import { exportToPptx, AspectRatio } from '@/utils/pptxExport';
 import HymnEditor from '@/components/HymnEditor';
 import SermonEditor from '@/components/SermonEditor';
 import SlidePreview from '@/components/SlidePreview';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Download, Music, BookOpen, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -13,6 +14,7 @@ export default function Index() {
   const [hymns, setHymns] = useState<Hymn[]>([]);
   const [sermon, setSermon] = useState<SermonData>({ sections: [], images: [] });
   const [exporting, setExporting] = useState(false);
+  const [aspectRatio, setAspectRatio] = useState<AspectRatio>('16:9');
 
   const hasContent = hymns.length > 0 || sermon.sections.length > 0;
 
@@ -23,7 +25,7 @@ export default function Index() {
     }
     setExporting(true);
     try {
-      await exportToPptx(hymns, sermon);
+      await exportToPptx(hymns, sermon, aspectRatio);
       toast.success('PPTX 文件已导出！');
     } catch (err) {
       console.error(err);
@@ -46,14 +48,25 @@ export default function Index() {
               SEC<span className="gold-accent">Slider</span> AI
             </h1>
           </div>
-          <Button
-            onClick={handleExport}
-            disabled={!hasContent || exporting}
-            className="bg-accent text-accent-foreground hover:bg-accent/90 font-semibold"
-          >
-            <Download className="w-4 h-4 mr-1.5" />
-            {exporting ? '导出中...' : '导出 PPTX'}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Select value={aspectRatio} onValueChange={(v) => setAspectRatio(v as AspectRatio)}>
+              <SelectTrigger className="w-[100px] h-9 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="16:9">16:9</SelectItem>
+                <SelectItem value="4:3">4:3</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              onClick={handleExport}
+              disabled={!hasContent || exporting}
+              className="bg-accent text-accent-foreground hover:bg-accent/90 font-semibold"
+            >
+              <Download className="w-4 h-4 mr-1.5" />
+              {exporting ? '导出中...' : '导出 PPTX'}
+            </Button>
+          </div>
         </div>
       </header>
 
