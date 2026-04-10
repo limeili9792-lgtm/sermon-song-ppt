@@ -25,7 +25,7 @@ export default function Index() {
     }
     setExporting(true);
     try {
-      await exportToPptx(hymns, sermon);
+      await exportToPptx(hymns, sermon, aspectRatio);
       toast.success('PPTX 文件已导出！');
     } catch (err) {
       console.error(err);
