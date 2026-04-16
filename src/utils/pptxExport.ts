@@ -55,8 +55,8 @@ function calcHymnLyricFontSize(hymn: Hymn): number {
     }
   }
   
-  if (maxLineLen > 16) return 36;
-  return 44;
+  if (maxLineLen > 16) return 40;
+  return 48;
 }
 
 export function generateSlides(hymns: Hymn[], sermon: SermonData): SlideData[] {
@@ -255,7 +255,7 @@ export async function exportToPptx(hymns: Hymn[], sermon: SermonData, aspectRati
         addTemplateElements(vSlide, SW, SH, '众立同唱');
 
         vSlide.addText(chunk, {
-          x: 0, y: 1.17, w: SW, h: 5.5,
+          x: 0, y: 0.9, w: SW, h: 5.5,
           fontSize: lyricSize,
           fontFace: FONT,
           color: COLORS.navy,
