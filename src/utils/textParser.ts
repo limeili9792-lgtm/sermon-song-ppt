@@ -1,7 +1,7 @@
-import { HymnVerse, SermonSection } from '@/types/slide';
+import { HymnVerse } from '@/types/slide';
 
 export function generateId(): string {
-  return Math.random().toString(36).substring(2, 10);
+  return crypto.randomUUID();
 }
 
 // Parse hymn text: detect verses by patterns like "1.", "第一节", "副歌", empty lines
@@ -58,39 +58,4 @@ export function parseHymnText(raw: string): { title: string; verses: HymnVerse[]
 
   flushVerse();
   return { title, verses };
-}
-
-// Parse sermon text: detect hierarchy by indentation, numbering, markers
-export function parseSermonText(raw: string): SermonSection[] {
-  const lines = raw.trim().split('\n');
-  const sections: SermonSection[] = [];
-
-  const titlePattern = /^(#+\s|【|《|标题[:：]|题目[:：])/i;
-  const subtitlePattern = /^([一二三四五六七八九十]+[、.．]|\d+[、.．]|[（(]\d+[)）]|[A-Z][、.．])/;
-
-  for (const rawLine of lines) {
-    const line = rawLine.trim();
-    if (!line) continue;
-
-    let level: 'title' | 'subtitle' | 'content' = 'content';
-
-    if (titlePattern.test(line)) {
-      level = 'title';
-    } else if (subtitlePattern.test(line)) {
-      level = 'subtitle';
-    }
-
-    sections.push({
-      id: generateId(),
-      level,
-      text: line.replace(/^#+\s*/, ''),
-    });
-  }
-
-  // If first section is content, promote to title
-  if (sections.length > 0 && sections[0].level === 'content') {
-    sections[0].level = 'title';
-  }
-
-  return sections;
 }

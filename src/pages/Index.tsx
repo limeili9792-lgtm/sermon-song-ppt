@@ -1,32 +1,39 @@
-import { useState } from 'react';
-import { Hymn, SermonData } from '@/types/slide';
-import { exportToPptx, AspectRatio } from '@/utils/pptxExport';
+import { useHymns } from '@/hooks/use-hymns';
+import { useAuth } from '@/hooks/use-auth';
+import { exportToPptx } from '@/utils/pptxExport';
+import { TEMPLATES } from '@/utils/pptxTemplates';
+import { TemplateName } from '@/types/slide';
 import HymnEditor from '@/components/HymnEditor';
-import SermonEditor from '@/components/SermonEditor';
 import SlidePreview from '@/components/SlidePreview';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, Music, BookOpen, Sparkles } from 'lucide-react';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Download, Sparkles, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
+import { useState } from 'react';
 
 export default function Index() {
-  const [hymns, setHymns] = useState<Hymn[]>([]);
-  const [sermon, setSermon] = useState<SermonData>({ sections: [], images: [] });
+  const {
+    hymns, myHymns, loading,
+    addHymn, updateHymn, removeHymn,
+    saveToMyHymns, saveCurrentToMyHymns,
+    addFromMyHymns, deleteMyHymn,
+  } = useHymns();
+  const { user, signOut } = useAuth();
   const [exporting, setExporting] = useState(false);
-  const [aspectRatio, setAspectRatio] = useState<AspectRatio>('16:9');
+  const [template, setTemplate] = useState<TemplateName>('default');
 
-  const hasContent = hymns.length > 0 || sermon.sections.length > 0;
+  const hasContent = hymns.length > 0;
 
   const handleExport = async () => {
     if (!hasContent) {
-      toast.error('请先添加诗歌或讲道内容');
+      toast.error('请先添加诗歌内容');
       return;
     }
     setExporting(true);
     try {
-      await exportToPptx(hymns, sermon, aspectRatio);
-      toast.success('PPTX 文件已导出！');
+      await exportToPptx(hymns, template);
+      await saveCurrentToMyHymns();
+      toast.success('PPTX 已导出，诗歌已保存');
     } catch (err) {
       console.error(err);
       toast.error('导出失败，请重试');
@@ -35,9 +42,16 @@ export default function Index() {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="border-b border-border bg-card/60 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
@@ -49,55 +63,51 @@ export default function Index() {
             </h1>
           </div>
           <div className="flex items-center gap-2">
-            <Select value={aspectRatio} onValueChange={(v) => setAspectRatio(v as AspectRatio)}>
-              <SelectTrigger className="w-[100px] h-9 text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="16:9">16:9</SelectItem>
-                <SelectItem value="4:3">4:3</SelectItem>
-              </SelectContent>
-            </Select>
+            <span className="text-xs text-muted-foreground hidden sm:block">{user?.email}</span>
             <Button
               onClick={handleExport}
               disabled={!hasContent || exporting}
               className="bg-accent text-accent-foreground hover:bg-accent/90 font-semibold"
+              size="sm"
             >
               <Download className="w-4 h-4 mr-1.5" />
               {exporting ? '导出中...' : '导出 PPTX'}
+            </Button>
+            <Button variant="ghost" size="icon" onClick={signOut} className="h-9 w-9 text-muted-foreground" title="登出">
+              <LogOut className="w-4 h-4" />
             </Button>
           </div>
         </div>
       </header>
 
-      {/* Main layout */}
       <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-          {/* Left: Editor */}
           <div className="lg:col-span-3">
-            <Tabs defaultValue="hymn" className="w-full">
-              <TabsList className="w-full bg-secondary/60 border border-border mb-4">
-                <TabsTrigger value="hymn" className="flex-1 data-[state=active]:bg-card data-[state=active]:shadow-sm gap-1.5">
-                  <Music className="w-4 h-4" /> 诗歌
-                </TabsTrigger>
-                <TabsTrigger value="sermon" className="flex-1 data-[state=active]:bg-card data-[state=active]:shadow-sm gap-1.5">
-                  <BookOpen className="w-4 h-4" /> 讲道
-                </TabsTrigger>
-              </TabsList>
-              <TabsContent value="hymn">
-                <HymnEditor hymns={hymns} onChange={setHymns} />
-              </TabsContent>
-              <TabsContent value="sermon">
-                <SermonEditor sermon={sermon} onChange={setSermon} />
-              </TabsContent>
-            </Tabs>
+            <HymnEditor
+              hymns={hymns}
+              myHymns={myHymns}
+              onAdd={addHymn}
+              onUpdate={updateHymn}
+              onRemove={removeHymn}
+              saveToMyHymns={saveToMyHymns}
+              addFromMyHymns={addFromMyHymns}
+              deleteMyHymn={deleteMyHymn}
+            />
           </div>
-
-          {/* Right: Preview */}
           <div className="lg:col-span-2">
             <div className="sticky top-20">
               <h3 className="font-display text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wider">预览</h3>
-              <SlidePreview hymns={hymns} sermon={sermon} />
+              <SlidePreview hymns={hymns} template={template} />
+              {/* 模版选择暂隐藏 */}
+              <div className="hidden">
+                <ToggleGroup type="single" value={template} onValueChange={(v) => v && setTemplate(v as TemplateName)} className="flex flex-wrap gap-1">
+                  {Object.values(TEMPLATES).map((t) => (
+                    <ToggleGroupItem key={t.name} value={t.name} className="text-xs h-7 px-3 data-[state=on]:bg-accent data-[state=on]:text-accent-foreground">
+                      {t.label}
+                    </ToggleGroupItem>
+                  ))}
+                </ToggleGroup>
+              </div>
             </div>
           </div>
         </div>

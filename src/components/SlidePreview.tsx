@@ -1,92 +1,64 @@
-import { Hymn, SermonData, SlideData } from '@/types/slide';
+import { Hymn, SlideData, TemplateName } from '@/types/slide';
 import { generateSlides } from '@/utils/pptxExport';
-import { useMemo, useState, useCallback } from 'react';
+import { TEMPLATES } from '@/utils/pptxTemplates';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, GripVertical, Copy, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface Props {
   hymns: Hymn[];
-  sermon: SermonData;
+  template: TemplateName;
 }
 
-function SlideRenderer({ slide }: { slide: SlideData }) {
-  const isHymn = slide.type === 'hymn-title' || slide.type === 'hymn-verse';
-  const isSermonTitle = slide.type === 'sermon-title';
-  const hasImage = !!(slide.image || slide.imageUrl);
+function SlideRenderer({ slide, template }: { slide: SlideData; template: TemplateName }) {
+  const t = TEMPLATES[template];
 
   return (
-    <div className="w-full aspect-video rounded-lg overflow-hidden relative bg-white border border-border">
-      {isHymn && (
-        <div className="w-full h-full flex flex-col items-center justify-start p-4 pt-2">
+    <div className="w-full aspect-video rounded-lg overflow-hidden relative border border-border" style={{ backgroundColor: `#${t.bg}` }}>
+      <div className="w-full h-full flex flex-col items-center justify-start p-4 pt-2">
+        {template === 'default' && (
           <div className="self-start flex items-center gap-1 mb-2">
-            <span className="text-[8px] text-[#002147] font-bold">🌿 众立同唱</span>
+            <span className="text-[8px] font-bold" style={{ color: `#${t.text}` }}>🌿 众立同唱</span>
           </div>
-          {slide.type === 'hymn-title' ? (
-            <div className="flex-1 flex items-center justify-center">
-              <h2 className="text-2xl md:text-3xl font-bold text-[#002147] text-center" style={{ fontFamily: 'SimHei, sans-serif' }}>
-                {slide.hymnTitle}
-              </h2>
-            </div>
-          ) : (
-            <div className="flex-1 flex items-start justify-center w-full pt-4">
-              <p className="text-sm md:text-base font-bold text-[#002147] text-center whitespace-pre-line leading-relaxed" style={{ fontFamily: 'SimHei, sans-serif' }}>
-                {slide.content}
-              </p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {isSermonTitle && (
-        <div className="w-full h-full flex items-center justify-center p-6">
-          <h2 className="text-2xl md:text-3xl font-bold text-[#002147] text-center" style={{ fontFamily: 'SimHei, sans-serif' }}>
-            {slide.title}
-          </h2>
-          {hasImage && slide.imageUrl && (
-            <img src={slide.imageUrl} alt="" className="absolute right-4 bottom-4 max-h-[40%] max-w-[35%] object-contain rounded" />
-          )}
-        </div>
-      )}
-
-      {slide.type === 'sermon-content' && (
-        <div className={`w-full h-full text-left flex ${hasImage ? 'gap-3' : 'flex-col'} p-4`}>
-          <div className={`flex flex-col gap-1 ${hasImage ? 'flex-1' : 'w-full'}`}>
-            {slide.subtitle && (
-              <h3 className="text-sm font-bold text-[#002147]" style={{ fontFamily: 'SimHei, sans-serif' }}>{slide.subtitle}</h3>
-            )}
-            {slide.content && (
-              <p className="text-xs leading-relaxed whitespace-pre-line text-[#002147]/80">{slide.content}</p>
-            )}
+        )}
+        {slide.type === 'hymn-title' ? (
+          <div className="flex-1 flex items-center justify-center">
+            <h2 className="text-2xl md:text-3xl font-bold text-center" style={{ color: `#${t.text}`, fontFamily: `${t.font}, sans-serif` }}>
+              {slide.hymnTitle}
+            </h2>
           </div>
-          {hasImage && (
-            <div className="w-2/5 h-full flex items-center justify-center">
-              <img src={slide.imageUrl || slide.image?.url} alt="" className="max-h-full max-w-full object-contain rounded" />
-            </div>
-          )}
-          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#002147]" />
-        </div>
-      )}
+        ) : (
+          <div className="flex-1 flex items-start justify-center w-full pt-4">
+            <p className="text-sm md:text-base font-bold text-center whitespace-pre-line leading-relaxed" style={{ color: `#${t.text}`, fontFamily: `${t.font}, sans-serif` }}>
+              {slide.content}
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
-export default function SlidePreview({ hymns, sermon }: Props) {
-  const baseSlides = useMemo(() => generateSlides(hymns, sermon), [hymns, sermon]);
+export default function SlidePreview({ hymns, template }: Props) {
+  const baseSlides = useMemo(() => generateSlides(hymns), [hymns]);
   const [customSlides, setCustomSlides] = useState<SlideData[] | null>(null);
   const [current, setCurrent] = useState(0);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
 
-  // Use custom slides if user has reordered, otherwise use generated
   const slides = customSlides ?? baseSlides;
+  const safeIdx = Math.min(current, Math.max(0, slides.length - 1));
 
   // Reset custom slides when base changes
-  useMemo(() => {
+  useEffect(() => {
     setCustomSlides(null);
   }, [baseSlides]);
 
-  const safeIdx = Math.min(current, Math.max(0, slides.length - 1));
-  if (safeIdx !== current) setCurrent(safeIdx);
+  // Clamp current index when slides change
+  useEffect(() => {
+    const safeIdx = Math.min(current, Math.max(0, slides.length - 1));
+    if (safeIdx !== current) setCurrent(safeIdx);
+  }, [slides.length, current]);
 
   const duplicateSlide = useCallback((idx: number) => {
     const s = customSlides ?? [...baseSlides];
@@ -143,7 +115,7 @@ export default function SlidePreview({ hymns, sermon }: Props) {
   return (
     <div className="space-y-3">
       <div className="border border-border rounded-xl overflow-hidden shadow-lg">
-        <SlideRenderer slide={slides[safeIdx]} />
+        <SlideRenderer slide={slides[safeIdx]} template={template} />
       </div>
 
       <div className="flex items-center justify-between">
@@ -164,6 +136,10 @@ export default function SlidePreview({ hymns, sermon }: Props) {
         </Button>
       </div>
 
+      {slides.length > 1 && (
+        <p className="text-xs text-muted-foreground text-center">可拖动下方PPT页面更改演唱顺序</p>
+      )}
+
       <div className="grid grid-cols-5 gap-1.5 max-h-[300px] overflow-y-auto">
         {slides.map((slide, i) => (
           <div
@@ -180,7 +156,7 @@ export default function SlidePreview({ hymns, sermon }: Props) {
           >
             <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center p-1 text-[4px] leading-tight bg-white text-[#002147]">
               <span className="truncate text-center">
-                {slide.hymnTitle || slide.title || slide.content?.slice(0, 20) || `${i + 1}`}
+                {slide.hymnTitle || slide.content?.slice(0, 20) || `${i + 1}`}
               </span>
             </div>
             <div className="absolute top-0 left-0 bg-black/50 text-white text-[6px] px-0.5 rounded-br">
