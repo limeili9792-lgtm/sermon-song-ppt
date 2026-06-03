@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -7,13 +7,57 @@ import { Sparkles, Mail, Loader2, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/use-auth';
 
+function parseHash(hash: string) {
+  const params = new URLSearchParams(hash.replace('#', ''));
+  const access_token = params.get('access_token');
+  const refresh_token = params.get('refresh_token');
+  const expires_in = params.get('expires_in');
+  if (access_token && refresh_token) {
+    return { access_token, refresh_token, expires_in: expires_in ? parseInt(expires_in) : 3600 };
+  }
+  return null;
+}
+
 export default function Auth() {
   const { user, loading: authLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [processingHash, setProcessingHash] = useState(false);
 
-  if (authLoading) {
+  useEffect(() => {
+    const tokens = parseHash(window.location.hash);
+    if (!tokens || user || authLoading) return;
+
+    setProcessingHash(true);
+    fetch('https://arxwgfifkrppkqcqtksr.supabase.co/auth/v1/user', {
+      headers: {
+        apikey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFyeHdnZmlma3JwcGtxY3F0a3NyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMTYwODcsImV4cCI6MjA5NTg5MjA4N30.Rz26BRgAP120mUitnIfLMGwmvbXq0BxihK374CNeyG4',
+        Authorization: 'Bearer ' + tokens.access_token,
+      },
+    })
+      .then(resp => resp.json())
+      .then(userData => {
+        if (userData.id) {
+          localStorage.setItem(
+            'supabase.auth.token',
+            JSON.stringify({
+              currentSession: {
+                access_token: tokens.access_token,
+                refresh_token: tokens.refresh_token,
+                expires_in: tokens.expires_in,
+                user: userData,
+              },
+              expiresAt: Date.now() + tokens.expires_in * 1000,
+            })
+          );
+          window.location.pathname = '/';
+        }
+      })
+      .catch(() => setProcessingHash(false));
+  }, []);
+
+  if (authLoading || processingHash) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
