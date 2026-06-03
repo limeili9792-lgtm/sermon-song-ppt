@@ -1,12 +1,25 @@
 import { useState } from 'react';
+import { Navigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Sparkles, Mail, Loader2, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function Auth() {
+  const { user, loading } = useAuth();
   const [email, setEmail] = useState('');
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (user) return <Navigate to="/" replace />;
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
 
