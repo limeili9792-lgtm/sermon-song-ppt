@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
+import { useState, useEffect } from "react";
 import Index from "./pages/Index.tsx";
 import Auth from "./pages/Auth.tsx";
 import NotFound from "./pages/NotFound.tsx";
@@ -25,6 +26,67 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function CallbackHandler({ children }: { children: React.ReactNode }) {
+  const [processing, setProcessing] = useState(true);
+
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (!hash.includes('access_token=')) {
+      setProcessing(false);
+      return;
+    }
+
+    const params = new URLSearchParams(hash.replace('#', ''));
+    const access_token = params.get('access_token');
+    const refresh_token = params.get('refresh_token');
+    const expires_in = parseInt(params.get('expires_in') || '3600');
+
+    if (!access_token || !refresh_token) {
+      setProcessing(false);
+      return;
+    }
+
+    fetch('https://arxwgfifkrppkqcqtksr.supabase.co/auth/v1/user', {
+      headers: {
+        apikey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFyeHdnZmlma3JwcGtxY3F0a3NyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMTYwODcsImV4cCI6MjA5NTg5MjA4N30.Rz26BRgAP120mUitnIfLMGwmvbXq0BxihK374CNeyG4',
+        Authorization: 'Bearer ' + access_token,
+      },
+    })
+      .then(resp => resp.json())
+      .then(userData => {
+        if (userData.id) {
+          localStorage.setItem(
+            'supabase.auth.token',
+            JSON.stringify({
+              currentSession: {
+                access_token,
+                refresh_token,
+                expires_in,
+                user: userData,
+              },
+              expiresAt: Date.now() + expires_in * 1000,
+            })
+          );
+          window.location.hash = '';
+          window.location.pathname = '/';
+        } else {
+          setProcessing(false);
+        }
+      })
+      .catch(() => setProcessing(false));
+  }, []);
+
+  if (processing) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -32,11 +94,13 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <Routes>
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <CallbackHandler>
+            <Routes>
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </CallbackHandler>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
