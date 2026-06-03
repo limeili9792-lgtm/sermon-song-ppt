@@ -8,10 +8,12 @@ import { toast } from 'sonner';
 import { useAuth } from '@/hooks/use-auth';
 
 export default function Auth() {
-  const { user, loading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [email, setEmail] = useState('');
+  const [sent, setSent] = useState(false);
+  const [isSending, setIsSending] = useState(false);
 
-  if (loading) {
+  if (authLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
@@ -20,14 +22,12 @@ export default function Auth() {
   }
 
   if (user) return <Navigate to="/" replace />;
-  const [sent, setSent] = useState(false);
-  const [loading, setLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) return;
 
-    setLoading(true);
+    setIsSending(true);
     try {
       const redirectTo = window.location.origin;
       const url = 'https://arxwgfifkrppkqcqtksr.supabase.co/auth/v1/otp?redirect_to=' + encodeURIComponent(redirectTo);
@@ -52,7 +52,7 @@ export default function Auth() {
     } catch (err: any) {
       toast.error(err.message || '发送失败');
     }
-    setLoading(false);
+    setIsSending(false);
   };
 
   return (
@@ -96,10 +96,10 @@ export default function Auth() {
                 className="bg-background/60"
               />
             </div>
-            <Button type="submit" disabled={loading || !email.trim()} className="w-full bg-accent text-accent-foreground hover:bg-accent/90 font-semibold">
-              {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Mail className="w-4 h-4 mr-2" />}
-              {loading ? '发送中...' : '发送登录链接'}
-              {!loading && <ArrowRight className="w-4 h-4 ml-1" />}
+            <Button type="submit" disabled={isSending || !email.trim()} className="w-full bg-accent text-accent-foreground hover:bg-accent/90 font-semibold">
+              {isSending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Mail className="w-4 h-4 mr-2" />}
+              {isSending ? '发送中...' : '发送登录链接'}
+              {!isSending && <ArrowRight className="w-4 h-4 ml-1" />}
             </Button>
           </form>
         )}
