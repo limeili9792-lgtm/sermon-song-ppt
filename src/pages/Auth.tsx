@@ -16,14 +16,18 @@ export default function Auth() {
 
     setLoading(true);
     try {
-      const url = 'https://arxwgfifkrppkqcqtksr.supabase.co/auth/v1/otp';
+      const redirectTo = window.location.origin;
+      const url = 'https://arxwgfifkrppkqcqtksr.supabase.co/auth/v1/otp?redirect_to=' + encodeURIComponent(redirectTo);
       const resp = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           apikey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFyeHdnZmlma3JwcGtxY3F0a3NyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMTYwODcsImV4cCI6MjA5NTg5MjA4N30.Rz26BRgAP120mUitnIfLMGwmvbXq0BxihK374CNeyG4',
         },
-        body: JSON.stringify({ email: email.trim() }),
+        body: JSON.stringify({
+          email: email.trim(),
+          gotrue_meta_security: {},
+        }),
       });
       if (resp.ok) {
         setSent(true);
