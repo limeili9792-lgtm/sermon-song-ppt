@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -16,18 +15,25 @@ export default function Auth() {
     if (!email.trim()) return;
 
     setLoading(true);
-    const { error } = await supabase.auth.signInWithOtp({
-      email: email.trim(),
-      options: { emailRedirectTo: window.location.origin },
-    });
-    setLoading(false);
-
-    if (error) {
-      toast.error(error.message);
-    } else {
-      setSent(true);
-      toast.success('登录链接已发送到你的邮箱');
+    try {
+      const baseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://arxwgfifkrppkqcqtksr.supabase.co';
+      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFyeHdnZmlma3JwcGtxY3F0a3NyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMTYwODcsImV4cCI6MjA5NTg5MjA4N30.Rz26BRgAP120mUitnIfLMGwmvbXq0BxihK374CNeyG4';
+      const resp = await fetch(`${baseUrl}/auth/v1/otp?redirect_to=${encodeURIComponent(window.location.origin)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: anonKey },
+        body: JSON.stringify({ email: email.trim(), gotrue_meta_security: {} }),
+      });
+      if (resp.ok) {
+        setSent(true);
+        toast.success('登录链接已发送到你的邮箱');
+      } else {
+        const data = await resp.json();
+        toast.error(data.msg || data.error || '发送失败，请重试');
+      }
+    } catch (err: any) {
+      toast.error(err.message || '发送失败');
     }
+    setLoading(false);
   };
 
   return (
