@@ -1,47 +1,61 @@
-import { createContext, useContext, useEffect, useState } from 'react';
-import type { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
+import { createContext, useContext, useEffect, useState, useCallback } from 'react';
+
+interface User {
+  id: string;
+  email?: string;
+  [key: string]: any;
+}
 
 interface AuthContextType {
   user: User | null;
-  session: Session | null;
   loading: boolean;
-  signOut: () => Promise<void>;
+  signOut: () => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
-  session: null,
   loading: true,
-  signOut: async () => {},
+  signOut: () => {},
 });
 
+function getStoredUser(): User | null {
+  try {
+    const raw = localStorage.getItem('supabase.auth.token');
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    const session = data?.currentSession;
+    if (!session) return null;
+    if (session.expires_at && Date.now() > new Date(session.expires_at).getTime()) return null;
+    return session.user || null;
+  } catch {
+    return null;
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<User | null>(getStoredUser);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    const stored = getStoredUser();
+    setUser(stored);
+    setLoading(false);
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
+    const onStorage = () => {
+      const stored = getStoredUser();
+      setUser(stored);
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
   }, []);
 
-  const signOut = async () => {
-    await supabase.auth.signOut();
-  };
+  const signOut = useCallback(() => {
+    localStorage.removeItem('supabase.auth.token');
+    setUser(null);
+  }, []);
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signOut }}>
       {children}
     </AuthContext.Provider>
   );
