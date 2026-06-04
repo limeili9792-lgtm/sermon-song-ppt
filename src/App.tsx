@@ -46,6 +46,23 @@ function CallbackHandler({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    // 先存 session 立即跳转，避免白屏等待
+    localStorage.setItem(
+      'supabase.auth.token',
+      JSON.stringify({
+        currentSession: {
+          access_token,
+          refresh_token,
+          expires_in,
+          user: { id: 'loading', email: '...' }, // 临时占位
+        },
+        expiresAt: Date.now() + expires_in * 1000,
+      })
+    );
+    window.location.hash = '';
+    window.location.pathname = '/';
+
+    // 后台获取用户信息
     fetch('https://arxwgfifkrppkqcqtksr.supabase.co/auth/v1/user', {
       headers: {
         apikey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFyeHdnZmlma3JwcGtxY3F0a3NyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMTYwODcsImV4cCI6MjA5NTg5MjA4N30.Rz26BRgAP120mUitnIfLMGwmvbXq0BxihK374CNeyG4',
@@ -67,13 +84,9 @@ function CallbackHandler({ children }: { children: React.ReactNode }) {
               expiresAt: Date.now() + expires_in * 1000,
             })
           );
-          window.location.hash = '';
-          window.location.pathname = '/';
-        } else {
-          setProcessing(false);
+          window.dispatchEvent(new Event('storage'));
         }
-      })
-      .catch(() => setProcessing(false));
+      });
   }, []);
 
   if (processing) {
