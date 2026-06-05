@@ -6,20 +6,8 @@ import { toast } from 'sonner';
 const API = 'https://arxwgfifkrppkqcqtksr.supabase.co';
 const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFyeHdnZmlma3JwcGtxY3F0a3NyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMTYwODcsImV4cCI6MjA5NTg5MjA4N30.Rz26BRgAP120mUitnIfLMGwmvbXq0BxihK374CNeyG4';
 
-function getToken(): string | null {
-  try {
-    const raw = localStorage.getItem('supabase.auth.token');
-    if (!raw) return null;
-    const data = JSON.parse(raw);
-    return data?.currentSession?.access_token || null;
-  } catch { return null; }
-}
-
 function headers(): Record<string, string> {
-  const token = getToken();
-  return token
-    ? { apikey: KEY, Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' }
-    : { apikey: KEY, 'Content-Type': 'application/json' };
+  return { apikey: KEY, 'Content-Type': 'application/json' };
 }
 
 async function fetchHymns(): Promise<Hymn[]> {
