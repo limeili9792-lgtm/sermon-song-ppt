@@ -15,20 +15,6 @@ async function fetchHymns(): Promise<Hymn[]> {
   return resp.ok ? (resp.json() as Promise<Hymn[]>) : [];
 }
 
-async function upsertHymn(hymn: Hymn, userId: string): Promise<boolean> {
-  const resp = await fetch(API + '/rest/v1/hymns?id=eq.' + encodeURIComponent(hymn.id), {
-    method: 'PATCH',
-    headers: headers(),
-    body: JSON.stringify({
-      user_id: userId,
-      title: hymn.title,
-      verses: hymn.verses,
-      repeat_structure: hymn.repeatStructure || null,
-      updated_at: new Date().toISOString(),
-    }),
-  });
-  return resp.ok;
-}
 
 async function insertHymn(hymn: Hymn, userId: string): Promise<Hymn | null> {
   const resp = await fetch(API + '/rest/v1/hymns', {
@@ -55,9 +41,12 @@ async function deleteHymnById(id: string): Promise<boolean> {
   return resp.ok;
 }
 
-function hymnFingerprint(hymn: Hymn): string {
-  const firstVerseText = hymn.verses[0]?.text?.slice(0, 20) || '';
-  return `${hymn.title}||${firstVerseText}`;
+function isDuplicate(hymn: Hymn, list: Hymn[]): boolean {
+  const firstVerse = hymn.verses[0]?.text?.trim() || '';
+  return list.some(h => {
+    const hFirstVerse = h.verses[0]?.text?.trim() || '';
+    return h.title === hymn.title || (firstVerse && hFirstVerse === firstVerse);
+  });
 }
 
 export function useHymns() {
@@ -95,17 +84,8 @@ export function useHymns() {
 
   const saveToMyHymns = useCallback(async (hymn: Hymn) => {
     if (!user) return;
-    const fp = hymnFingerprint(hymn);
-    const existing = myHymns.find(h => hymnFingerprint(h) === fp);
-
-    if (existing) {
-      const ok = await upsertHymn(hymn, user.id);
-      if (ok) {
-        setMyHymns(prev => prev.map(h => h.id === existing.id ? { ...hymn, id: existing.id } : h));
-        toast.success('已更新到诗歌库');
-      } else {
-        toast.error('更新失败');
-      }
+    if (isDuplicate(hymn, myHymns)) {
+      toast.error('已有该诗歌');
       return;
     }
 
@@ -121,26 +101,17 @@ export function useHymns() {
   const saveCurrentToMyHymns = useCallback(async () => {
     if (!user || hymns.length === 0) return;
 
-    const fingerprints = new Set<string>();
     let saved = 0;
-
     for (const hymn of hymns) {
-      const fp = hymnFingerprint(hymn);
-      if (fingerprints.has(fp)) continue;
-      fingerprints.add(fp);
-
-      const dup = myHymns.find(h => hymnFingerprint(h) === fp);
-      if (dup) {
-        await upsertHymn(hymn, user.id);
-      } else {
-        await insertHymn(hymn, user.id);
-      }
+      if (isDuplicate(hymn, myHymns)) continue;
+      await insertHymn(hymn, user.id);
       saved++;
     }
 
     if (saved > 0) {
       const data = await fetchHymns();
       if (data) setMyHymns(data);
+      toast.success(`已保存 ${saved} 首诗歌`);
     }
   }, [user, hymns, myHymns]);
 

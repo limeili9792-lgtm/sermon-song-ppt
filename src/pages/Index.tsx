@@ -131,7 +131,7 @@ export default function Index() {
             </Button>
             <Button onClick={() => setShowSaveDialog(true)} disabled={!hasContent || exporting} variant="outline" size="sm">
               <Cloud className="w-4 h-4 mr-1.5" />
-              导出云端
+              保存到云端
             </Button>
             <Button onClick={openCloudList} variant="ghost" size="sm">
               <Cloud className="w-4 h-4 mr-1.5" />
