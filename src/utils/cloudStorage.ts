@@ -1,8 +1,18 @@
 const API = 'https://arxwgfifkrppkqcqtksr.supabase.co';
 const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFyeHdnZmlma3JwcGtxY3F0a3NyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMTYwODcsImV4cCI6MjA5NTg5MjA4N30.Rz26BRgAP120mUitnIfLMGwmvbXq0BxihK374CNeyG4';
 
+function getToken(): string | null {
+  try {
+    const raw = localStorage.getItem('supabase.auth.token');
+    return raw ? JSON.parse(raw).currentSession?.access_token : null;
+  } catch { return null; }
+}
+
 function headers(): Record<string, string> {
-  return { apikey: KEY };
+  const token = getToken();
+  return token
+    ? { apikey: KEY, Authorization: 'Bearer ' + token }
+    : { apikey: KEY };
 }
 
 export interface CloudPresentation {
