@@ -147,7 +147,7 @@ function addTemplateElements(slide: PptxGenJS.Slide, sw: number, sh: number, tem
   }
 }
 
-export async function exportToPptx(hymns: Hymn[], template: TemplateName = 'default') {
+export async function exportToPptx(hymns: Hymn[], template: TemplateName = 'default', returnBlob = false): Promise<Blob | void> {
   await loadTemplateImages();
 
   const t = TEMPLATES[template];
@@ -203,5 +203,8 @@ export async function exportToPptx(hymns: Hymn[], template: TemplateName = 'defa
     }
   }
 
+  if (returnBlob) {
+    return pptx.write({ outputType: 'blob' }) as Promise<Blob>;
+  }
   await pptx.writeFile({ fileName: 'SECSlider_Presentation.pptx' });
 }
