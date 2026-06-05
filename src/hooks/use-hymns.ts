@@ -33,7 +33,7 @@ export function useHymns() {
       if (error) {
         console.error('Failed to load my hymns:', error);
       } else {
-        setMyHymns(data || []);
+        setMyHymns((data || []) as unknown as Hymn[]);
       }
       setLoading(false);
     };
@@ -68,8 +68,8 @@ export function useHymns() {
         .from('hymns')
         .update({
           title: hymn.title,
-          verses: hymn.verses,
-          repeat_structure: hymn.repeatStructure || null,
+          verses: hymn.verses as any,
+          repeat_structure: (hymn.repeatStructure || null) as any,
           updated_at: new Date().toISOString(),
         })
         .eq('id', existing.id);
@@ -90,9 +90,9 @@ export function useHymns() {
         id: hymn.id,
         user_id: user.id,
         title: hymn.title,
-        verses: hymn.verses,
-        repeat_structure: hymn.repeatStructure || null,
-      })
+        verses: hymn.verses as any,
+        repeat_structure: (hymn.repeatStructure || null) as any,
+      } as any)
       .select()
       .single();
 
@@ -100,7 +100,7 @@ export function useHymns() {
       console.error('Failed to save hymn:', error);
       toast.error('保存失败');
     } else if (data) {
-      setMyHymns(prev => [data, ...prev]);
+      setMyHymns(prev => [data as unknown as Hymn, ...prev]);
       toast.success('已保存到诗歌库');
     }
   }, [user, myHymns]);
@@ -122,8 +122,8 @@ export function useHymns() {
       if (dup) {
         await supabase.from('hymns').update({
           title: hymn.title,
-          verses: hymn.verses,
-          repeat_structure: hymn.repeatStructure || null,
+          verses: hymn.verses as any,
+          repeat_structure: (hymn.repeatStructure || null) as any,
           updated_at: new Date().toISOString(),
         }).eq('id', dup.id);
         saved++;
@@ -132,9 +132,9 @@ export function useHymns() {
           id: hymn.id,
           user_id: user.id,
           title: hymn.title,
-          verses: hymn.verses,
-          repeat_structure: hymn.repeatStructure || null,
-        });
+          verses: hymn.verses as any,
+          repeat_structure: (hymn.repeatStructure || null) as any,
+        } as any);
         saved++;
       }
     }
@@ -145,7 +145,7 @@ export function useHymns() {
         .from('hymns')
         .select('*')
         .order('created_at', { ascending: false });
-      if (data) setMyHymns(data);
+      if (data) setMyHymns(data as unknown as Hymn[]);
     }
   }, [user, hymns, myHymns]);
 
