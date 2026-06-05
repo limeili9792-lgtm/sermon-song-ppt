@@ -18,10 +18,12 @@ export async function uploadPptx(blob: Blob, title: string, note: string, creato
   const fileName = `${Date.now()}-${crypto.randomUUID()}.pptx`;
   const filePath = `pptx/${fileName}`;
 
+  const form = new FormData();
+  form.append('file', blob, fileName);
   const uploadResp = await fetch(API + '/storage/v1/object/' + filePath, {
     method: 'POST',
-    headers: { ...headers(), 'Content-Type': 'application/vnd.openxmlformats-officedocument.presentationml.presentation' },
-    body: blob,
+    headers: headers(),
+    body: form,
   });
 
   if (!uploadResp.ok) return false;
