@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SECSlider AI 使用指南</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: #080c14;
+    color: #e8e8f0;
+    font-family: 'Inter', -apple-system, sans-serif;
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  /* ── 背景 ── */
+  .bg-orbs {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  }
+  .bg-orbs div {
+    position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.5;
+  }
+  .bg-orbs div:nth-child(1) {
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(120,100,240,.4), transparent 70%);
+    top: -150px; right: -100px;
+  }
+  .bg-orbs div:nth-child(2) {
+    width: 350px; height: 350px;
+    background: radial-gradient(circle, rgba(200,160,80,.3), transparent 70%);
+    bottom: -100px; left: -80px;
+  }
+  .bg-orbs div:nth-child(3) {
+    width: 300px; height: 300px;
+    background: radial-gradient(circle, rgba(100,180,220,.25), transparent 70%);
+    top: 50%; left: 50%;
+  }
+
+  /* ── 容器 ── */
+  .container {
+    position: relative; z-index: 1;
+    max-width: 800px; margin: 0 auto; padding: 2rem 1.5rem;
+  }
+
+  /* ── Hero ── */
+  .hero {
+    text-align: center; padding: 4rem 0 3rem;
+  }
+  .hero-badge {
+    display: inline-block;
+    background: rgba(180,160,100,.15);
+    border: 1px solid rgba(200,170,80,.3);
+    border-radius: 20px; padding: .3rem 1rem;
+    font-size: .75rem; letter-spacing: .1em;
+    color: #c8a850; margin-bottom: 1.5rem;
+  }
+  .hero h1 {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 2.4rem; font-weight: 700;
+    background: linear-gradient(135deg, #f0e0c0 20%, #c8a850 60%, #f0e0c0 80%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .hero p {
+    color: rgba(255,255,255,.5); margin-top: .8rem; font-size: 1rem;
+  }
+
+  /* ── 玻璃面板 ── */
+  .glass-card {
+    background: rgba(255,255,255,.04);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 20px; padding: 2rem;
+    margin-bottom: 1.2rem;
+    transition: border-color .3s;
+  }
+  .glass-card:hover { border-color: rgba(200,170,80,.3); }
+
+  /* ── 章节标题 ── */
+  .section-title {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 1.6rem; font-weight: 700;
+    margin: 2.5rem 0 1.2rem;
+    padding-bottom: .8rem;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+    display: flex; align-items: center; gap: .6rem;
+  }
+  .section-title .icon { font-size: 1.4rem; }
+
+  /* ── 步骤 ── */
+  .step {
+    display: flex; gap: 1rem; align-items: flex-start;
+  }
+  .step-num {
+    flex-shrink: 0;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(200,170,80,.3), rgba(180,150,60,.15));
+    border: 1px solid rgba(200,170,80,.4);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: .9rem; color: #d4b860;
+  }
+  .step-content h4 {
+    font-size: 1.05rem; font-weight: 600; margin-bottom: .2rem;
+  }
+  .step-content p {
+    color: rgba(255,255,255,.55); font-size: .9rem;
+  }
+
+  /* ── 图片占位 ── */
+  .img-box {
+    margin: 1rem 0;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,.06);
+  }
+  .img-box img {
+    width: 100%; display: block;
+  }
+  .img-placeholder {
+    background: rgba(255,255,255,.03);
+    border: 2px dashed rgba(255,255,255,.08);
+    border-radius: 12px;
+    padding: 3rem; text-align: center;
+    color: rgba(255,255,255,.2); font-size: .85rem;
+  }
+
+  /* ── 按钮示意 ── */
+  .btn-demo {
+    display: inline-block;
+    padding: .5rem 1.2rem; border-radius: 8px;
+    font-size: .85rem; font-weight: 600;
+  }
+  .btn-gold {
+    background: linear-gradient(135deg, #b8942e, #9a7b20);
+    color: #fff;
+  }
+  .btn-outline {
+    border: 1px solid rgba(255,255,255,.2);
+    color: rgba(255,255,255,.7);
+  }
+  .btn-ghost {
+    color: rgba(255,255,255,.5);
+  }
+  .btn-group {
+    display: flex; gap: .5rem; flex-wrap: wrap; margin: .5rem 0;
+  }
+
+  /* ── 提示 ── */
+  .tip {
+    background: rgba(200,170,80,.08);
+    border: 1px solid rgba(200,170,80,.2);
+    border-radius: 12px; padding: .8rem 1.2rem;
+    margin: 1rem 0; font-size: .85rem;
+    display: flex; align-items: flex-start; gap: .5rem;
+  }
+  .tip .ti { flex-shrink: 0; font-size: 1rem; }
+  .tip span { color: rgba(255,255,255,.7); }
+
+  /* ── Footer ── */
+  .footer {
+    text-align: center; padding: 3rem 0 2rem;
+    color: rgba(255,255,255,.2); font-size: .8rem;
+  }
+  .footer a { color: rgba(200,170,80,.6); text-decoration: none; }
+</style>
+</head>
+<body>
+
+<div class="bg-orbs"><div></div><div></div><div></div></div>
+
+<div class="container">
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-badge">QUICK START GUIDE</div>
+    <h1>SECSlider AI</h1>
+    <p>三步完成教会诗歌幻灯片</p>
+  </div>
+
+  <!-- 第一部分：开始之前 -->
+  <div class="section-title"><span class="icon">&#9889;</span> 开始之前</div>
+
+  <div class="glass-card">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <h4>打开网站</h4>
+        <p>浏览器访问 <strong style="color:#c8a850;">secsliderai.vercel.app</strong></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="glass-card">
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <h4>注册 / 登录</h4>
+        <p>输入邮箱和密码。第一次用点"注册新账户"，之后再登录。所有成员的诗歌和PPT都在同一个库里共享。</p>
+        <div class="tip">
+          <span class="ti">&#128161;</span>
+          <span>整个团队用不同邮箱注册，看到的内容完全一样，方便多台电脑协作。</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 第二部分：制作诗歌 -->
+  <div class="section-title"><span class="icon">&#9998;</span> 制作诗歌幻灯片</div>
+
+  <div class="glass-card">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <h4>添加诗歌内容</h4>
+        <p>两种方式：</p>
+        <p style="margin-top:.5rem;"><strong>方式A — 粘贴文字：</strong>把歌词复制粘贴到大文本框里，点<strong>"解析并添加"</strong></p>
+        <p><strong>方式B — 拍照识别：</strong>点<strong>"图片OCR识别"</strong>，选择歌谱照片，AI自动提取歌词</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="glass-card">
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <h4>调整内容</h4>
+        <p>解析后可以编辑标题和每一段歌词，点击段落可以修改文字。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="glass-card">
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <h4>AI生成演唱顺序（可选）</h4>
+        <p>点击<strong>"AI生成演唱顺序"</strong>，AI根据诗歌结构自动分析演唱时的段落重复规律。</p>
+        <div class="tip">
+          <span class="ti">&#128161;</span>
+          <span>比如"主歌→副歌→主歌→副歌→结束"，AI会自动安排好，省去手动调整。</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="glass-card">
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-content">
+        <h4>右边预览区</h4>
+        <p>随时在右侧看到幻灯片效果。可以拖拽调整顺序、删除不需要的幻灯片。</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 第三部分：导出 -->
+  <div class="section-title"><span class="icon">&#128190;</span> 导出幻灯片</div>
+
+  <div class="glass-card">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <h4>导出到本地</h4>
+        <p>点顶部<strong>"导出本地"</strong>，浏览器直接下载 .pptx 文件，可以在 PowerPoint 中打开。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="glass-card">
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <h4>保存到云端</h4>
+        <p>点顶部<strong>"保存到云端"</strong>，填写备注（如"6.7上午主日"），确认后上传。</p>
+        <div class="tip">
+          <span class="ti">&#128161;</span>
+          <span>保存到云端后，其他电脑登录同一个网站就能下载。10天后自动清理。</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="glass-card">
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <h4>查看云端PPT</h4>
+        <p>点顶部<strong>"云端PPT"</strong>，弹出列表。可以下载别人的PPT，也可以删掉自己的。</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 第四部分：诗歌库 -->
+  <div class="section-title"><span class="icon">&#128218;</span> 诗歌库</div>
+
+  <div class="glass-card">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <h4>保存常用诗歌</h4>
+        <p>编辑好的诗歌点<strong>"保存到我的诗歌库"</strong>，下次直接加载，不用重新录入。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="glass-card">
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <h4>加载诗歌库</h4>
+        <p>切换到<strong>"诗歌库"</strong>标签，看到所有已保存的诗歌，点<strong>"添加到编辑器"</strong>即可使用。</p>
+        <div class="tip">
+          <span class="ti">&#128161;</span>
+          <span>同一首诗歌不会重复保存，系统会自动提示"已有该诗歌"。</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    SECSlider AI &middot; <a href="https://secsliderai.vercel.app">打开网站</a>
+  </div>
+
+</div>
+</body>
+</html>
